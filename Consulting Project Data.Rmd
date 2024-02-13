@@ -1,0 +1,143 @@
+---
+title: "Consulting Project Data"
+author: "Matt Parker"
+date: "2023-09-22"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(MASS)
+library(caret)
+library(rsample)     # data splitting 
+library(dplyr)       # data wrangling
+library(rpart)       # performing regression trees
+library(rpart.plot)  # plotting regression trees
+library(ipred)       # bagging
+library(lm.beta)
+```
+
+## Demographics
+
+Use histograms, boxplots for demographics
+
+```{r}
+data.1 <- na.omit(Data_STAT4893W[, 161:181])
+data <- Data_STAT4893W[, 1:85]
+```
+
+```{r}
+library(gtsummary)
+
+data %>%
+
+  gtsummary::tbl_summary() %>%
+  gtsummary::as_kable()
+
+```
+
+
+## Objective #1: Empirically categorize and/or rank the coping strategies with regard to levels of compassion fatigue
+
+```{r}
+## Multiple Linear Regression
+
+m1 <- lm(CFS_SecondaryTrauma_ln ~ COPE_Positive + COPE_MentalDis + COPE_Venting + COPE_InstrumentalSup + COPE_Active + COPE_Denial + COPE_Religious + COPE_Humor + COPE_BehavioralDis + COPE_Restraint + COPE_EmotionalSup + COPE_Substance + COPE_Acceptance + COPE_Suppression + COPE_Planning, data = data.1)
+
+beta.m1 <- lm.beta(m1)
+
+m2 <- lm(CFS_JobBurnout_ln ~ COPE_Positive + COPE_MentalDis + COPE_Venting + COPE_InstrumentalSup + COPE_Active + COPE_Denial + COPE_Religious + COPE_Humor + COPE_BehavioralDis + COPE_Restraint + COPE_EmotionalSup + COPE_Substance + COPE_Acceptance + COPE_Suppression + COPE_Planning, data = data.1)
+
+beta.m2 <- lm.beta(m2)
+
+var_names.1 <- names(coef(beta.m1))
+coef_vals.1 <- coef(beta.m1)
+beta.table.1 <- data.table::data.table("Coping Strategies" = var_names.1, "Betas" = coef_vals.1)
+beta.table.1[order(coef_vals.1, decreasing = TRUE)]
+
+var_names.2 <- names(coef(beta.m2))
+coef_vals.2 <- coef(beta.m2)
+beta.table.2 <- data.table::data.table("Coping Strategies" = var_names.2, "Betas" = coef_vals.2)
+beta.table.2[order(coef_vals.2, decreasing = TRUE)]
+
+par(mfrow = c(2, 2))
+plot(m2)
+
+par(mfrow = c(2, 2))
+plot(m1)
+```
+
+
+```{r}
+## Regression Trees
+
+mod.1 <- rpart(CFS_SecondaryTrauma_ln ~ COPE_Positive + COPE_MentalDis + COPE_Venting + COPE_InstrumentalSup + COPE_Active + COPE_Denial + COPE_Religious + COPE_Humor + COPE_BehavioralDis + COPE_Restraint + COPE_EmotionalSup + COPE_Substance + COPE_Acceptance + COPE_Suppression + COPE_Planning, data = data.1, method = "anova")
+
+rpart.plot(mod.1)
+
+mod.2 <- rpart(CFS_JobBurnout_ln ~ COPE_Positive + COPE_MentalDis + COPE_Venting + COPE_InstrumentalSup + COPE_Active + COPE_Denial + COPE_Religious + COPE_Humor + COPE_BehavioralDis + COPE_Restraint + COPE_EmotionalSup + COPE_Substance + COPE_Acceptance + COPE_Suppression + COPE_Planning, data = data.1, method = "anova")
+
+rpart.plot(mod.2)
+```
+
+
+```{r}
+## Bagging with Caret
+
+ctrl <- trainControl(method = "cv",  number = 10) 
+
+# CV bagged model
+
+bagged_cv.1 <- train(CFS_SecondaryTrauma_ln ~ COPE_Positive + COPE_MentalDis + COPE_Venting + COPE_InstrumentalSup + COPE_Active + COPE_Denial + COPE_Religious + COPE_Humor + COPE_BehavioralDis + COPE_Restraint + COPE_EmotionalSup + COPE_Substance + COPE_Acceptance + COPE_Suppression + COPE_Planning, data = data.1, method = "treebag", trControl = ctrl, importance = TRUE)
+
+plot(varImp(bagged_cv.1), 15, main = "Importance of Each Covariate in Predicting Secondary Trauma")
+
+bagged_cv.2 <- train(CFS_JobBurnout_ln ~ COPE_Positive + COPE_MentalDis + COPE_Venting + COPE_InstrumentalSup + COPE_Active + COPE_Denial + COPE_Religious + COPE_Humor + COPE_BehavioralDis + COPE_Restraint + COPE_EmotionalSup + COPE_Substance + COPE_Acceptance + COPE_Suppression + COPE_Planning, data = data.1, method = "treebag", trControl = ctrl, importance = TRUE)
+
+plot(varImp(bagged_cv.2), 15, main = "Importance of Each Covariate in Predicting Job Burnout")
+```
+
+
+## Objective #2: Categorizing adaptive/maladaptive coping strategies
+
+Adaptive: Acceptance, Active, Positive, Religious, Restraint, Instrumental Support, and Emotional Support
+
+Maladaptive: Mental Disengagement, Behavioral Disengagement, Denial, Venting, Substance, and Suppression
+
+Mixed: Humor, Planning
+
+```{r}
+library(tidyverse)  # data manipulation
+library(cluster)    # clustering algorithms
+library(factoextra) # clustering algorithms & visualization
+```
+
+```{r}
+data.2 <- data.1[, 1:15]
+data.adap <- data.2[, c(1, 5, 13, 7, 4, 11, 10)]
+data.mal <- data.2[, -c(1, 5, 13, 7, 4, 11, 10)]
+```
+
+```{r}
+set.seed(1234)
+
+k1 <- kmeans(data.2, centers = 2)
+fviz_cluster(k1, data = data.2)
+cluster.1 <- data.table::data.table("Variables" = names(data.2), "Cluster #1 Means" = k1$centers[1, ])
+cluster.2 <- data.table::data.table("Variables" = names(data.2), "Cluster #2 Means" = k1$centers[2, ])
+
+cluster.1[order(k1$centers[1, ], decreasing = TRUE)]
+cluster.2[order(k1$centers[2, ], decreasing = TRUE)]
+
+k1$centers[1, ] - k1$centers[2, ]
+```
+
+```{r}
+h <- beta.table.2[order(coef_vals.2, decreasing = TRUE)]
+View(h[, 2])
+```
+
+
