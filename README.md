@@ -1,6 +1,6 @@
 # About
 
-As a part of my Consultation and Communication for Statisticians course (STAT 4893W), we we're tasked with completing a statistical consultation for Dr. Nguyen-Feng, an Assistant Professor at the University of Minnesota. Duluth. Our objective was to determine whether or not a relashionship exists between compassion fatigue of Trauma Center Trauma Sensitive Yoga (TCTSY) and the coping strategies they employed. In doing so, I implemented various statistical methods including Multiple Linear Regression, Regression Trees, Bagging, and Cluster analysis for coping strategy categorization. 
+As a part of my Consultation and Communication for Statisticians course (STAT 4893W), we were tasked with completing a statistical consultation for Dr. Nguyen-Feng, an Assistant Professor at the University of Minnesota, Duluth. Our objective was to determine whether or not a relashionship exists between compassion fatigue of Trauma Center Trauma Sensitive Yoga (TCTSY) facilitators and the coping strategies they employed. In doing so, I implemented various statistical methods including Multiple Linear Regression, Regression Trees, Bagging, and Cluster Analysis for coping strategy categorization. 
 
 This repository includes my statistical analysis conducted in R Studio, the TCTSY dataset, and my written report.
 
